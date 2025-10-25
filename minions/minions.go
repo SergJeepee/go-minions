@@ -5,16 +5,27 @@ import (
 	"sync"
 )
 
+type wChannel[T any] struct {
+	ch chan T
+}
+
+func newWChannel[T any](size int) wChannel[T] {
+	if size > 0 {
+		return wChannel[T]{ch: make(chan T, size)}
+	}
+	return wChannel[T]{ch: make(chan T)}
+}
+
 type Minions[in, out any] struct {
-	input  inputChannel[in]
-	output outputChannel[out]
+	input  wChannel[in]
+	output wChannel[out]
 	n      int
 	fun    func(in) out
 }
 
 func ListenHere[in, out any](fun func(in) out, minionsNum, inNum, outNum int) (Minions[in, out], chan in, chan out) {
-	input := newInputChannel[in](inNum)
-	output := newOutputChannel[out](outNum)
+	input := newWChannel[in](inNum)
+	output := newWChannel[out](outNum)
 	return Minions[in, out]{
 		input:  input,
 		output: output,
@@ -49,26 +60,4 @@ func (m *Minions[in, out]) Go() (minionsDone chan struct{}) {
 		close(minionsDone)
 	}()
 	return minionsDone
-}
-
-type inputChannel[T any] struct {
-	ch chan T
-}
-
-func newInputChannel[T any](size int) inputChannel[T] {
-	if size > 0 {
-		return inputChannel[T]{ch: make(chan T, size)}
-	}
-	return inputChannel[T]{ch: make(chan T)}
-}
-
-type outputChannel[T any] struct {
-	ch chan T
-}
-
-func newOutputChannel[T any](size int) outputChannel[T] {
-	if size > 0 {
-		return outputChannel[T]{ch: make(chan T, size)}
-	}
-	return outputChannel[T]{ch: make(chan T)}
 }
